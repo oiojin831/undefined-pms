@@ -69,6 +69,29 @@ const expediaRoom = (roomTypeId: string) => {
   }
 }
 
+const agodaRoom = (roomTypeCode: string) => {
+  switch (roomTypeCode) {
+    case 'Business Double':
+      return 'dmyk101'
+    case 'Deluxe Double':
+      return 'dmyk102'
+    case 'City Loft Room':
+      return 'dmyk103'
+    case 'Double Room':
+      return 'dmyk104'
+    case 'Basic Double':
+      return 'dmyk201'
+    case 'Classic Double':
+      return 'dmyk202'
+    case 'Comfort Double':
+      return 'dmyk203'
+    case 'Elite Double':
+      return 'dmyk204'
+    default:
+      return 'agoda room name error'
+  }
+}
+
 admin.initializeApp()
 
 const firebaseDb = admin.firestore()
@@ -76,6 +99,8 @@ const firebaseDb = admin.firestore()
 export const newAirbnb = functions.https.onRequest(
   async (request, response) => {
     const data = request.body
+    const re = new RegExp('dmyk')
+    const isDmyk = re.test(airbnbRoom(data.listing.id))
 
     const stayingDates = getDaysArray(
       new Date(data.start_date),
@@ -92,9 +117,12 @@ export const newAirbnb = functions.https.onRequest(
           reservationCode: data.code,
           checkInDate: data.start_date,
           checkOutDate: data.end_date,
+          checkInTime: isDmyk ? 16 : 15,
+          checkOutTime: isDmyk ? 10 : 11,
           nights: data.nights,
           guests: data.guests,
           roomNumber: airbnbRoom(data.listing.id),
+          guestHouseName: isDmyk ? 'dmyk' : 'sinsa',
           price: data.total_price_formatted,
           payoutPrice: data.payout_price,
           phoneNumber: data.guest.phone,
@@ -109,82 +137,17 @@ export const newAirbnb = functions.https.onRequest(
   },
 )
 
-export const todayReservations = functions.https.onRequest(
-  (request, response) => {
-    const resRef = firebaseDb.collection('reservations')
-    const now = DateTime.local().setZone('Asia/Seoul')
-    console.log('now', now.toISODate())
-    const today = resRef.where('checkIn', '==', now.toISODate())
-    today
-      .get()
-      .then(snapshot => {
-        let result = ''
-        snapshot.forEach(doc => {
-          const data = doc.data()
-          result =
-            result +
-            '\n' +
-            data.listingName +
-            ': ' +
-            Math.round(data.nights * 1.5 * data.guests)
-        })
-        response.send({
-          response_type: 'in_channel',
-          text: result,
-        })
-      })
-      .catch(error => {
-        console.log(error)
-        response.send(error)
-      })
-  },
-)
-
 export const newExpedia = functions.https.onRequest(
   async (request, response) => {
     const data = request.body
-    const seperated = data.checkInData.replace(/,/g, '').split(' ')
-    let startDate = ''
-    let endDate = ''
-    let guests = 0
 
-    console.log('seperated')
-
-    if (seperated.length !== 9) {
-      console.log('seperated', seperated[2])
-      const checkInYearCheckOutMonth = seperated[2]
-        .split(/([0-9]+)/)
-        .filter(Boolean)
-      startDate =
-        seperated[0] + ' ' + seperated[1] + ' ' + checkInYearCheckOutMonth[0]
-      console.log('chekcinyear', checkInYearCheckOutMonth)
-      console.log('year', seperated[4].substring(0, 4))
-      console.log('guest', seperated[4].substring(4, 5))
-      endDate =
-        checkInYearCheckOutMonth[1] +
-        ' ' +
-        seperated[3] +
-        ' ' +
-        seperated[4].substring(0, 4)
-      guests =
-        parseInt(seperated[4].substring(4, 5)) +
-        parseInt(seperated[4].substring(5, 6))
-    } else {
-      startDate = seperated[0] + ' ' + seperated[1] + ' ' + seperated[2]
-      endDate = seperated[3] + ' ' + seperated[4] + ' ' + seperated[5]
-      guests = parseInt(seperated[6] + parseInt(seperated[7]))
-    }
-    console.log('serpreted', seperated)
-
-    const stayingDates = getDaysArray(new Date(startDate), new Date(endDate))
     const reservationCode = data.reservationCode.replace(/[^0-9]/g, '')
-    console.log('reservagtion', reservationCode)
-    const uniqueId = data.platform.toLowerCase() + '-' + reservationCode
-    const nights = stayingDates.length
+    const uniqueId = 'expedia' + '-' + reservationCode
+    console.log(uniqueId)
+    console.log('status: ', data.status)
 
     if (data.status === 'Cancellation') {
       try {
-        console.log(uniqueId, ' cancellation')
         await firebaseDb
           .collection('reservations')
           .doc(uniqueId)
@@ -195,7 +158,19 @@ export const newExpedia = functions.https.onRequest(
         console.log('error', error)
         response.status(500).send(error)
       }
-    } else if (data.status === 'Change') {
+    }
+
+    const re = new RegExp('dmyk')
+    const isDmyk = re.test(expediaRoom(data.roomTypeCode))
+
+    const inOut = data.checkInData.replace(/,/g, '').split(' ')
+    const startDate = `${inOut[0]} ${inOut[1]} ${inOut[2]}`
+    const endDate = `${inOut[3]} ${inOut[4]} ${inOut[5]}`
+    console.log('inOut: ', inOut)
+
+    const stayingDates = getDaysArray(new Date(startDate), new Date(endDate))
+
+    if (data.status === 'Change') {
       try {
         console.log(uniqueId, ' change')
         await firebaseDb
@@ -212,13 +187,16 @@ export const newExpedia = functions.https.onRequest(
                 endDate,
                 'LLL d yyyy',
               ).toISODate(),
-              nights: nights,
-              guests: guests,
+              nights: stayingDates.length,
+              guests: 2,
+              checkInTime: isDmyk ? 16 : 15,
+              checkOutTime: isDmyk ? 10 : 11,
               guestName: data.guestName,
               stayingDates: stayingDates,
               phoneNumber: data.phoneNumber,
               price: data.totalPrice,
               roomNumber: expediaRoom(data.roomTypeCode),
+              guestHouseName: isDmyk ? 'dmyk' : 'sinsa',
             },
             {merge: true},
           )
@@ -238,21 +216,24 @@ export const newExpedia = functions.https.onRequest(
             reservationCode: reservationCode,
             checkInDate: DateTime.fromFormat(
               startDate,
-              'LLL dd yyyy',
+              'LLL d yyyy',
             ).toISODate(),
             checkOutDate: DateTime.fromFormat(
               endDate,
-              'LLL dd yyyy',
+              'LLL d yyyy',
             ).toISODate(),
-            nights: nights,
-            guests: guests,
+            checkInTime: isDmyk ? 16 : 15,
+            checkOutTime: isDmyk ? 10 : 11,
+            nights: stayingDates.length,
+            guests: 2,
             guestName: data.guestName,
             stayingDates: stayingDates,
             roomNumber: expediaRoom(data.roomTypeCode),
             phoneNumber: data.phoneNumber,
             price: data.totalPrice,
+            guestHouseName: isDmyk ? 'dmyk' : 'sinsa',
           })
-        response.status(200).send('ok')
+        response.status(200).send('new ok')
       } catch (error) {
         console.log('error', error)
         response.status(500).send(error)
@@ -260,3 +241,71 @@ export const newExpedia = functions.https.onRequest(
     }
   },
 )
+
+export const newAgoda = functions.https.onRequest(async (request, response) => {
+  const data = request.body
+
+  const reservationCode = data.reservationCode.replace(/[^0-9]/g, '')
+  const uniqueId = 'agoda' + '-' + reservationCode
+  console.log(uniqueId)
+  console.log('status: ', data.status)
+
+  if (data.status === 'Cancellation') {
+    try {
+      await firebaseDb
+        .collection('reservations')
+        .doc(uniqueId)
+        .delete()
+
+      response.status(200).send('agoda delete ok')
+    } catch (error) {
+      console.log('error', error)
+      response.status(500).send(error)
+    }
+  }
+
+  const checkInDate = DateTime.fromFormat(data.checkIn, 'd-MM-yyyy').toISODate()
+  const checkOutDate = DateTime.fromFormat(
+    data.checkOut,
+    'd-MM-yyyy',
+  ).toISODate()
+  const stayingDates = getDaysArray(
+    new Date(checkInDate),
+    new Date(checkOutDate),
+  )
+
+  console.log('checkindate', checkInDate)
+  console.log('checkoutdate', checkOutDate)
+
+  const guests = data.guests.replace(/[^0-9]/g, '') // extract number
+  const roomTypeCode = data.roomTypeCode.replace(/[0-9]/g, '').trim() // extract number
+
+  try {
+    if (data.status === 'Booking confirmation') {
+      await firebaseDb
+        .collection('reservations')
+        .doc(uniqueId)
+        .set({
+          platform: 'agoda',
+          reservationCode: reservationCode,
+          checkInDate: checkInDate,
+          checkOutDate: checkOutDate,
+          checkInTime: 16,
+          checkOutTime: 10,
+          nights: stayingDates.length,
+          guests: parseInt(guests),
+          guestName: data.guestName,
+          stayingDates: stayingDates,
+          roomNumber: agodaRoom(roomTypeCode),
+          phoneNumber: data.phoneNumber,
+          price: data.totalPrice,
+          payoutPrice: data.payoutPrice,
+          guestHouseName: 'dmyk',
+        })
+      response.status(200).send('new agoda ok')
+    }
+  } catch (error) {
+    console.log('error', error)
+    response.status(500).send(error)
+  }
+})
