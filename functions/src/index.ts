@@ -106,9 +106,24 @@ export const newAirbnb = functions.https.onRequest(
       new Date(data.start_date),
       new Date(data.end_date),
     )
+    const uniqueId = 'airbnb' + '-' + data.code
+    console.log('airbnb status', data.status)
+
+    if (data.status === 'cancelled') {
+      try {
+        await firebaseDb
+          .collection('reservations')
+          .doc(uniqueId)
+          .delete()
+
+        response.status(200).send('delete ok')
+      } catch (error) {
+        console.log('error', error)
+        response.status(500).send(error)
+      }
+    }
 
     try {
-      const uniqueId = 'airbnb' + '-' + data.code
       await firebaseDb
         .collection('reservations')
         .doc(uniqueId)
