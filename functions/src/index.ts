@@ -108,6 +108,8 @@ export const newAirbnb = functions.https.onRequest(
     )
     const uniqueId = 'airbnb' + '-' + data.code
     console.log('airbnb status', data.status)
+    //pending just quit the function
+    // how to terminate ??
 
     if (data.status === 'cancelled') {
       try {
@@ -116,10 +118,10 @@ export const newAirbnb = functions.https.onRequest(
           .doc(uniqueId)
           .delete()
 
-        response.status(200).send('delete ok')
+        return response.status(200).send('delete ok')
       } catch (error) {
         console.log('error', error)
-        response.status(500).send(error)
+        return response.status(500).send(error)
       }
     }
 
@@ -144,10 +146,10 @@ export const newAirbnb = functions.https.onRequest(
           guestName: data.guest.first_name + ' ' + data.guest.last_name,
           stayingDates: stayingDates,
         })
-      response.status(200).send('ok')
+      return response.status(200).send('ok')
     } catch (error) {
       console.log('error', error)
-      response.status(500).send(error)
+      return response.status(500).send(error)
     }
   },
 )
@@ -168,10 +170,10 @@ export const newExpedia = functions.https.onRequest(
           .doc(uniqueId)
           .delete()
 
-        response.status(200).send('delete ok')
+        return response.status(200).send('delete ok')
       } catch (error) {
         console.log('error', error)
-        response.status(500).send(error)
+        return response.status(500).send(error)
       }
     }
 
@@ -215,10 +217,10 @@ export const newExpedia = functions.https.onRequest(
             },
             {merge: true},
           )
-        response.status(200).send('change ok')
+        return response.status(200).send('change ok')
       } catch (error) {
         console.log('error', error)
-        response.status(500).send(error)
+        return response.status(500).send(error)
       }
     } else {
       try {
@@ -248,10 +250,10 @@ export const newExpedia = functions.https.onRequest(
             price: data.totalPrice,
             guestHouseName: isDmyk ? 'dmyk' : 'sinsa',
           })
-        response.status(200).send('new ok')
+        return response.status(200).send('new ok')
       } catch (error) {
         console.log('error', error)
-        response.status(500).send(error)
+        return response.status(500).send(error)
       }
     }
   },
@@ -272,10 +274,10 @@ export const newAgoda = functions.https.onRequest(async (request, response) => {
         .doc(uniqueId)
         .delete()
 
-      response.status(200).send('agoda delete ok')
+      return response.status(200).send('agoda delete ok')
     } catch (error) {
       console.log('error', error)
-      response.status(500).send(error)
+      return response.status(500).send(error)
     }
   }
 
@@ -317,10 +319,13 @@ export const newAgoda = functions.https.onRequest(async (request, response) => {
           payoutPrice: data.payoutPrice,
           guestHouseName: 'dmyk',
         })
-      response.status(200).send('new agoda ok')
+      return response.status(200).send('new agoda ok')
     }
   } catch (error) {
     console.log('error', error)
-    response.status(500).send(error)
+    return response.status(500).send(error)
   }
+
+  console.log('no action agoda')
+  return response.status(200).send('ok')
 })
