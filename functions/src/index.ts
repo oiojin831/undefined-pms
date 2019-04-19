@@ -329,3 +329,15 @@ export const newAgoda = functions.https.onRequest(async (request, response) => {
   console.log('no action agoda')
   return response.status(200).send('ok')
 })
+
+export const addAdminRole = functions.https.onCall(async (data, context) => {
+  // get the user add custom claim - admin, cleaner
+  try {
+    const user = await admin.auth().getUserByEmail(data.email)
+    await admin.auth().setCustomUserClaims(user.uid, {admin: true})
+    return {message: `Success! ${data.email} has been made an admin`}
+  } catch (error) {
+    console.log('error', error)
+    return {message: 'error'}
+  }
+})
