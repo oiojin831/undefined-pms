@@ -125,32 +125,38 @@ export const newAirbnb = functions.https.onRequest(
       }
     }
 
-    try {
-      await firebaseDb
-        .collection('reservations')
-        .doc(uniqueId)
-        .set({
-          platform: 'airbnb',
-          reservationCode: data.code,
-          checkInDate: data.start_date,
-          checkOutDate: data.end_date,
-          checkInTime: isDmyk ? 16 : 15,
-          checkOutTime: isDmyk ? 10 : 11,
-          nights: data.nights,
-          guests: data.guests,
-          roomNumber: airbnbRoom(data.listing.id),
-          guestHouseName: isDmyk ? 'dmyk' : 'sinsa',
-          price: data.total_price_formatted,
-          payoutPrice: data.payout_price,
-          phoneNumber: data.guest.phone,
-          guestName: data.guest.first_name + ' ' + data.guest.last_name,
-          stayingDates: stayingDates,
-        })
-      return response.status(200).send('ok')
-    } catch (error) {
-      console.log('error', error)
-      return response.status(500).send(error)
+    if (data.status === 'accepted') {
+      try {
+        await firebaseDb
+          .collection('reservations')
+          .doc(uniqueId)
+          .set({
+            platform: 'airbnb',
+            reservationCode: data.code,
+            checkInDate: data.start_date,
+            checkOutDate: data.end_date,
+            checkInTime: isDmyk ? 16 : 15,
+            checkOutTime: isDmyk ? 10 : 11,
+            nights: data.nights,
+            guests: data.guests,
+            roomNumber: airbnbRoom(data.listing.id),
+            guestHouseName: isDmyk ? 'dmyk' : 'sinsa',
+            price: data.total_price_formatted,
+            payoutPrice: data.payout_price,
+            phoneNumber: data.guest.phone,
+            guestName: data.guest.first_name + ' ' + data.guest.last_name,
+            stayingDates: stayingDates,
+          })
+        return response.status(200).send('ok')
+      } catch (error) {
+        console.log('error', error)
+        return response.status(500).send(error)
+      }
     }
+    console.log('not added to db')
+    console.log('reservationCode', data.code)
+    console.log('guestName', data.guest.first_name + ' ' + data.guest.last_name)
+    return response.status(200).send('ok')
   },
 )
 
@@ -296,6 +302,7 @@ export const newAgoda = functions.https.onRequest(async (request, response) => {
 
   const guests = data.guests.replace(/[^0-9]/g, '') // extract number
   const roomTypeCode = data.roomTypeCode.replace(/[0-9]/g, '').trim() // extract number
+  const phoneNumber = data.phoneNumber ? data.phoneNumber : 'n/a'
 
   try {
     if (data.status === 'Booking confirmation') {
@@ -314,7 +321,7 @@ export const newAgoda = functions.https.onRequest(async (request, response) => {
           guestName: data.guestName,
           stayingDates: stayingDates,
           roomNumber: agodaRoom(roomTypeCode),
-          phoneNumber: data.phoneNumber,
+          phoneNumber: phoneNumber,
           price: data.totalPrice,
           payoutPrice: data.payoutPrice,
           guestHouseName: 'dmyk',
