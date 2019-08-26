@@ -50,6 +50,18 @@ const airbnbRoom = (roomTypeId: number) => {
       return "dmyk204";
     case 31096349:
       return "dmyk300";
+    case 38083180:
+      return "jhonor201B";
+    case 38090176:
+      return "jhonor201C";
+    case 37973180:
+      return "jhonor201D";
+    case 38083688:
+      return "jhonor301B";
+    case 38090627:
+      return "jhonor301C";
+    case 38081524:
+      return "jhonor301D";
     case 37885485:
       return "jhonor202A";
     case 37783241:
@@ -59,7 +71,7 @@ const airbnbRoom = (roomTypeId: number) => {
     case 37886567:
       return "jhonor202D";
     case 37902101:
-      return "jhonor202X";
+      return "jhonor302X";
     default:
       return "airbnb not secified";
   }
@@ -393,3 +405,83 @@ export const addAdminRole = functions.https.onCall(async (data, context) => {
     return { message: "error" };
   }
 });
+
+export const newBooking = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+
+    const uniqueId = "agoda" + "-" + data.reservationCode;
+    console.log(uniqueId);
+    // TODO status 바꾸기
+    // TODO reservationCode 바꾸기
+    const stayingDates = getDaysArray(
+      new Date(data.checkInDate),
+      new Date(data.checkOutDate)
+    );
+
+    try {
+      await firebaseDb
+        .collection("reservations")
+        .doc(uniqueId)
+        .set({
+          platform: "agoda",
+          reservationCode: data.reservationCode,
+          checkInDate: data.checkInDate,
+          checkOutDate: data.checkOutDate,
+          checkInTime: 16,
+          checkOutTime: 10,
+          nights: stayingDates.length - 1,
+          guests: parseInt(data.guests),
+          guestName: data.guestName,
+          stayingDates: stayingDates,
+          roomNumber: data.roomTypeCode,
+          phoneNumber: data.phoneNumber,
+          price: data.totalPrice,
+          payoutPrice: (data.totalPrice * 0.75).toString(),
+          guestHouseName: "jhonor"
+        });
+      return response.status(200).send("new booking ok");
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
+
+export const calculateEmpty = functions.https.onRequest(
+  async (request, response) => {
+    try {
+      const querySnapshot = await firebaseDb
+        .collection("reservations")
+        .where("guestHouseName", "==", "jhonor")
+        .get();
+      let num = 0;
+      querySnapshot.forEach(function(doc) {
+        if (
+          doc.data().checkInData < "2019-09-01" &&
+          doc.data().checkInData > "2019-10-01"
+        ) {
+          console.log(doc.id, " => ", doc.data().nights);
+          num = num + parseInt(doc.data().nights);
+        }
+      });
+      return response.status(200).send(`${num}`);
+
+      // firebaseDb
+      //   .collection("reservations")
+      //   .where("guestHouseName", "==", "jhonor")
+      //   //        .where("checkInDate", ">=", "2019-09-01")
+      //   //       .where("checkInDate", "<", "2019-10-01")
+      //   .get()
+      //   .then(function(snap) {
+      //     console.log("snap", snap);
+      //     snap.forEach(element => {
+      //       console.log(element.data().nights);
+      //     });
+      //   });
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
