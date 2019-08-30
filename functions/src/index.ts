@@ -2,6 +2,14 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DateTime } from "luxon";
 
+const bookingStyleDate = (date: string) => {
+  return DateTime.fromFormat(date, "ccc d MMM yyyy").toISODate();
+};
+
+const krwToString = (price: string) => {
+  return Number(price.replace(/[^0-9\.]+/g, ""));
+};
+
 const getDaysArray = (start: Date, end: Date) => {
   const arr: Array<Date> = [];
   const dt: Date = start;
@@ -406,38 +414,53 @@ export const addAdminRole = functions.https.onCall(async (data, context) => {
   }
 });
 
-export const newBooking = functions.https.onRequest(
+export const bookingJhonor = functions.https.onRequest(
   async (request, response) => {
     const data = request.body;
 
-    const uniqueId = "agoda" + "-" + data.reservationCode;
-    console.log(uniqueId);
-    // TODO status 바꾸기
-    // TODO reservationCode 바꾸기
-    const stayingDates = getDaysArray(
-      new Date(data.checkInDate),
-      new Date(data.checkOutDate)
-    );
+    const uniqueId = "booking" + "-" + data.reservationCode;
+    console.log("Jhonor new booking reservation");
+    console.log(`reservation id: ${uniqueId}, jhonor`);
+    console.log(data.status === "Cancellation" ? "cancel" : "new");
+    if (data.status === "Cancellation") {
+      try {
+        await firebaseDb
+          .collection("reservations")
+          .doc(uniqueId)
+          .delete();
+
+        return response.status(200).send("jhonor booking.com delete ok");
+      } catch (error) {
+        console.log("error", error);
+        return response.status(500).send(error);
+      }
+    }
 
     try {
+      const checkInDate = bookingStyleDate(data.checkInDate);
+      const checkOutDate = bookingStyleDate(data.checkOutDate);
+      const stayingDates = getDaysArray(
+        new Date(checkInDate),
+        new Date(checkOutDate)
+      );
       await firebaseDb
         .collection("reservations")
         .doc(uniqueId)
         .set({
-          platform: "agoda",
+          platform: "booking",
           reservationCode: data.reservationCode,
-          checkInDate: data.checkInDate,
-          checkOutDate: data.checkOutDate,
+          checkInDate: checkInDate,
+          checkOutDate: checkOutDate,
           checkInTime: 16,
           checkOutTime: 10,
-          nights: stayingDates.length - 1,
+          nights: parseInt(data.nights),
           guests: parseInt(data.guests),
           guestName: data.guestName,
           stayingDates: stayingDates,
-          roomNumber: data.roomTypeCode,
+          roomNumber: data.roomNumber,
           phoneNumber: data.phoneNumber,
-          price: data.totalPrice,
-          payoutPrice: (data.totalPrice * 0.75).toString(),
+          price: krwToString(data.totalPrice).toString(),
+          payoutPrice: (krwToString(data.totalPrice) * 0.82).toString(),
           guestHouseName: "jhonor"
         });
       return response.status(200).send("new booking ok");
