@@ -80,6 +80,14 @@ const airbnbRoom = (roomTypeId: number) => {
       return "jhonor202D";
     case 37902101:
       return "jhonor302X";
+    case 38230566:
+      return "jhonor302A";
+    case 38230939:
+      return "jhonor302B";
+    case 38231192:
+      return "jhonor302C";
+    case 38231310:
+      return "jhonor302D";
     default:
       return "airbnb not secified";
   }
@@ -464,6 +472,47 @@ export const bookingJhonor = functions.https.onRequest(
           guestHouseName: "jhonor"
         });
       return response.status(200).send("new booking ok");
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
+
+export const agodaJhonor = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+
+    const uniqueId = "agoda" + "-" + data.reservationCode;
+    console.log("agoda new booking reservation");
+    console.log(`reservation id: ${uniqueId}, jhonor`);
+
+    try {
+      const stayingDates = getDaysArray(
+        new Date(data.checkInDate),
+        new Date(data.checkOutDate)
+      );
+      await firebaseDb
+        .collection("reservations")
+        .doc(uniqueId)
+        .set({
+          platform: "agoda",
+          reservationCode: data.reservationCode,
+          checkInDate: data.checkInDate,
+          checkOutDate: data.checkOutDate,
+          checkInTime: 16,
+          checkOutTime: 10,
+          nights: parseInt(data.nights),
+          guests: parseInt(data.guests),
+          guestName: data.guestName,
+          stayingDates: stayingDates,
+          roomNumber: data.roomNumber,
+          phoneNumber: data.phoneNumber,
+          price: krwToString(data.totalPrice).toString(),
+          payoutPrice: krwToString(data.totalPrice).toString(),
+          guestHouseName: "jhonor"
+        });
+      return response.status(200).send("new agoda ok");
     } catch (error) {
       console.log("error", error);
       return response.status(500).send(error);
