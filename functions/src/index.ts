@@ -608,3 +608,90 @@ export const calculateEmpty = functions.https.onRequest(
     }
   }
 );
+export const calRevenue = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+    const dates = getDaysArray(
+      new Date(data.startDate),
+      new Date(data.endDate)
+    );
+    const promises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+    try {
+      console.log("dates", dates);
+      dates.forEach(date => {
+        const p = firebaseDb
+          .collection("reservations")
+          .where("stayingDates", "array-contains", date)
+          .get();
+        promises.push(p);
+      });
+      const snapshots = await Promise.all(promises);
+      let totalSum = 0;
+      snapshots.forEach(function(snapshot, i) {
+        let daySum = 0;
+        snapshot.forEach(doc => {
+          let roomSum = 0;
+          if (
+            doc.data().checkOutDate !== dates[i] &&
+            doc.data().guestHouseName === "jhonor"
+          ) {
+            roomSum =
+              roomSum + krwToString(doc.data().payoutPrice) / doc.data().nights;
+            console.log(doc.data().guestName, roomSum);
+          }
+          daySum = daySum + roomSum;
+        });
+        totalSum = daySum + totalSum;
+        console.log("total", totalSum);
+      });
+      return response.status(200).send(`${totalSum}`);
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
+
+export const calFilledRoom = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+    const dates = getDaysArray(
+      new Date(data.startDate),
+      new Date(data.endDate)
+    );
+    const promises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+    try {
+      console.log("dates", dates);
+      dates.forEach(date => {
+        const p = firebaseDb
+          .collection("reservations")
+          .where("stayingDates", "array-contains", date)
+          .get();
+        promises.push(p);
+      });
+      const snapshots = await Promise.all(promises);
+      let totalSum = 0;
+      snapshots.forEach(function(snapshot, i) {
+        let daySum = 0;
+        snapshot.forEach(doc => {
+          let roomSum = 0;
+          if (
+            doc.data().checkOutDate !== dates[i] &&
+            doc.data().guestHouseName === "jhonor"
+          ) {
+            roomSum =
+              roomSum + (doc.data().roomNumber === "jhonor302X" ? 4 : 1);
+            console.log(doc.data().guestName, roomSum);
+          }
+          daySum = daySum + roomSum;
+        });
+        totalSum = daySum + totalSum;
+        console.log("total", totalSum);
+      });
+      return response.status(200).send(`${totalSum}`);
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
