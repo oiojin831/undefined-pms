@@ -6,7 +6,10 @@ const bookingStyleDate = (date: string) => {
   return DateTime.fromFormat(date, "ccc d MMM yyyy").toISODate();
 };
 
-const krwToString = (price: string) => {
+const krwToString = (price: any) => {
+  if (typeof price != "string") {
+    return price;
+  }
   return Number(price.replace(/[^0-9\.]+/g, ""));
 };
 
@@ -19,8 +22,9 @@ const getDaysArray = (start: Date, end: Date) => {
   return arr.map(v => v.toISOString().slice(0, 10));
 };
 
-const agodaHotelType = (hotelId: number) => {
-  switch (hotelId) {
+const agodaHotelType = (hotelId: any) => {
+  console.log("hotelId", hotelId);
+  switch (parseInt(hotelId)) {
     case 6887228:
       return "dmyk";
     case 399390:
@@ -136,14 +140,40 @@ const agodaRoom = (roomTypeCode: string) => {
       return "dmyk203";
     case "Elite Double":
       return "dmyk204";
+    case "Family Quad Room":
+      return "jhonor201A";
+    case "Twin Room (Private Bathroom)":
+      return "jhonor201B";
+    case "Double Room Private Bathroom":
+      return "jhonor201C";
+    case "Bunk Twin (Private Bathroom)":
+      return "jhonor201D";
     case "Double shared bathroom":
       return "jhonor202A";
     case "Room with Bunk Bed and Shared Bathroom":
       return "jhonor202B";
-    case "Triple Room with Shared Bathroom":
-      return "jhonor202C";
     case "Budget Quadruple Room with Shared Bathroom":
+      return "jhonor202C";
+    case "Triple Room with Shared Bathroom":
       return "jhonor202D";
+    case "Quad Room":
+      return "jhonor301A";
+    case "Double Or Twin Room Private Bathroom":
+      return "jhonor301B";
+    case "Deluxe Double Room With Private Bathroom":
+      return "jhonor301C";
+    case "Twin Room with Private Bathroom":
+      return "jhonor301D";
+    case "Standard Double Shared Bathroom":
+      return "jhonor302A";
+    case "Twin Room with Bunk Bed and Shared Bathroom":
+      return "jhonor302B";
+    case "Quadruple Room with Shared Bathroom":
+      return "jhonor302C";
+    case "Standard Triple Room With Shared Bathroom":
+      return "jhonor302D";
+    case "Family 1":
+      return "jhonor302X";
     default:
       return "agoda room name error";
   }
@@ -468,7 +498,7 @@ export const bookingJhonor = functions.https.onRequest(
           roomNumber: data.roomNumber,
           phoneNumber: data.phoneNumber,
           price: krwToString(data.totalPrice).toString(),
-          payoutPrice: (krwToString(data.totalPrice) * 0.82).toString(),
+          payoutPrice: (krwToString(data.totalPrice) * 0.85).toString(),
           guestHouseName: "jhonor"
         });
       return response.status(200).send("new booking ok");
@@ -483,7 +513,7 @@ export const agodaJhonor = functions.https.onRequest(
   async (request, response) => {
     const data = request.body;
 
-    const uniqueId = "agoda" + "-" + data.reservationCode;
+    const uniqueId = "booking" + "-" + data.reservationCode;
     console.log("agoda new booking reservation");
     console.log(`reservation id: ${uniqueId}, jhonor`);
 
@@ -496,7 +526,7 @@ export const agodaJhonor = functions.https.onRequest(
         .collection("reservations")
         .doc(uniqueId)
         .set({
-          platform: "agoda",
+          platform: "booking",
           reservationCode: data.reservationCode,
           checkInDate: data.checkInDate,
           checkOutDate: data.checkOutDate,
@@ -522,22 +552,43 @@ export const agodaJhonor = functions.https.onRequest(
 
 export const calculateEmpty = functions.https.onRequest(
   async (request, response) => {
+    // try {
+    //   const querySnapshot = await firebaseDb
+    //     .collection("reservations")
+    //     .where("stayingDates", "array-contains" "2019-09-01")
+    //     .get();
+    //   let num = 0;
+    //   querySnapshot.forEach(function(doc) {
+    //     if (
+    //       doc.data().checkInData < "2019-09-01" &&
+    //       doc.data().checkInData > "2019-10-01"
+    //     ) {
+    //       console.log(doc.id, " => ", doc.data().payoutPrice);
+    //       num = num + parseInt(doc.data().nights);
+    //     }
+    //   });
+    //   return response.status(200).send(`${num}`);
+
+    const data = request.body;
     try {
       const querySnapshot = await firebaseDb
         .collection("reservations")
-        .where("guestHouseName", "==", "jhonor")
+        .where("stayingDates", "array-contains", data.date)
         .get();
-      let num = 0;
+      let sum = 0;
+      console.log("--------------------");
       querySnapshot.forEach(function(doc) {
         if (
-          doc.data().checkInData < "2019-09-01" &&
-          doc.data().checkInData > "2019-10-01"
+          doc.data().checkOutDate !== data.date &&
+          doc.data().guestHouseName === "jhonor"
         ) {
-          console.log(doc.id, " => ", doc.data().nights);
-          num = num + parseInt(doc.data().nights);
+          console.log(doc.data().guestName);
+          sum = sum + krwToString(doc.data().payoutPrice) / doc.data().nights;
         }
+        console.log("sub", sum);
       });
-      return response.status(200).send(`${num}`);
+      console.log(` ${sum}`);
+      return response.status(200).send(`${sum}`);
 
       // firebaseDb
       //   .collection("reservations")
