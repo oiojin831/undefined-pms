@@ -5,3 +5,5 @@ curl -X POST -H "Content-Type: application/json" -d @expedia-new.json http://loc
 
 get a credetial
 export GOOGLE_APPLICATION_CREDENTIALS="/Users/oiojin831/Developments/undefinedist/keys/airbnb-dmyk-493c11131564.json"
+
+firebase deploy --only functions

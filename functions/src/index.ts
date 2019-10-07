@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DateTime } from "luxon";
+import * as req from "request";
 
 const bookingStyleDate = (date: string) => {
   return DateTime.fromFormat(date, "ccc d MMM yyyy").toISODate();
@@ -22,10 +23,20 @@ const getDaysArray = (start: Date, end: Date) => {
   return arr.map(v => v.toISOString().slice(0, 10));
 };
 
+const paymentType = (payType: any) => {
+  console.log("payType", payType);
+  switch (payType) {
+    case "사전 지불":
+      return "prePaid";
+    default:
+      return payType;
+  }
+};
+
 const agodaHotelType = (hotelId: any) => {
   console.log("hotelId", hotelId);
   switch (parseInt(hotelId)) {
-    case 6887228:
+    case 6887227:
       return "dmyk";
     case 399390:
       return "jhonor";
@@ -62,12 +73,24 @@ const airbnbRoom = (roomTypeId: number) => {
       return "dmyk204";
     case 31096349:
       return "dmyk300";
+    case 39032698:
+      return "jhonor101A";
+    case 39033097:
+      return "jhonor101B";
+    case 39033347:
+      return "jhonor101C";
+    case 39033981:
+      return "jhonor101D";
+    case 39099852:
+      return "jhonor201A";
     case 38083180:
       return "jhonor201B";
     case 38090176:
       return "jhonor201C";
     case 37973180:
       return "jhonor201D";
+    case 39101670:
+      return "jhonor301A";
     case 38083688:
       return "jhonor301B";
     case 38090627:
@@ -140,6 +163,14 @@ const agodaRoom = (roomTypeCode: string) => {
       return "dmyk203";
     case "Elite Double":
       return "dmyk204";
+    case "2 Twin":
+      return "jhonor101A";
+    case "1 Double Bed 1 Single Bed Non Smoking":
+      return "jhonor101B";
+    case "1 Double 1 Single Beds Room":
+      return "jhonor101C";
+    case "1 Queen Bed":
+      return "jhonor101D";
     case "Family Quad Room":
       return "jhonor201A";
     case "Twin Room (Private Bathroom)":
@@ -178,7 +209,146 @@ const agodaRoom = (roomTypeCode: string) => {
       return "agoda room name error";
   }
 };
-
+/*
+const jhonorData = {
+  jhonor101A: {
+    beds: {
+      single: 2
+    },
+    passcode: "5437*",
+    wifi: "77777777"
+  },
+  jhonor101B: {
+    beds: {
+      single: 1,
+      queen: 1
+    },
+    passcode: "2403*",
+    wifi: "77777777"
+  },
+  jhonor101C: {
+    beds: {
+      single: 1,
+      queen: 1
+    },
+    passcode: "3479*",
+    wifi: "77777777"
+  },
+  jhonor101D: {
+    beds: { queen: 1 },
+    passcode: "9893*",
+    wifi: "77777777"
+  },
+  jhonor201A: {
+    beds: {
+      single: 2,
+      bunk: 1
+    },
+    passcode: "5216*",
+    wifi: "77777777"
+  },
+  jhonor201B: {
+    beds: {
+      single: 2
+    },
+    passcode: "6593*",
+    wifi: "77777777"
+  },
+  jhonor201C: {
+    beds: {
+      queen: 1
+    },
+    passcode: "1269*",
+    wifi: "77777777"
+  },
+  jhonor201D: {
+    beds: { bunk: 1 },
+    passcode: "7508*",
+    wifi: "77777777"
+  },
+  jhonor202A: {
+    beds: {
+      queen: 1
+    },
+    passcode: "2674*",
+    wifi: "77777777"
+  },
+  jhonor202B: {
+    beds: {
+      bunk: 2
+    },
+    passcode: "8086*",
+    wifi: "77777777"
+  },
+  jhonor202C: {
+    beds: {
+      single: 2,
+      bunk: 1
+    },
+    passcode: "0359*",
+    wifi: "77777777"
+  },
+  jhonor202D: {
+    beds: { single: 1, bunk: 1 },
+    passcode: "1410*",
+    wifi: "77777777"
+  },
+  jhonor301A: {
+    beds: {
+      single: 2,
+      bunk: 1
+    },
+    passcode: "5272*",
+    wifi: "77777777"
+  },
+  jhonor301B: {
+    beds: {
+      single: 2
+    },
+    passcode: "8625*",
+    wifi: "77777777"
+  },
+  jhonor301C: {
+    beds: {
+      queen: 1
+    },
+    passcode: "7505*",
+    wifi: "77777777"
+  },
+  jhonor301D: {
+    beds: { bunk: 1 },
+    passcode: "0430*",
+    wifi: "77777777"
+  },
+  jhonor302A: {
+    beds: {
+      queen: 1
+    },
+    passcode: "6236*",
+    wifi: "77777777"
+  },
+  jhonor302B: {
+    beds: {
+      bunk: 2
+    },
+    passcode: "1774*",
+    wifi: "77777777"
+  },
+  jhonor302C: {
+    beds: {
+      single: 2,
+      bunk: 1
+    },
+    passcode: "3120*",
+    wifi: "77777777"
+  },
+  jhonor302D: {
+    beds: { single: 1, bunk: 1 },
+    passcode: "0288*",
+    wifi: "77777777"
+  }
+};
+*/
 admin.initializeApp();
 
 const firebaseDb = admin.firestore();
@@ -513,7 +683,7 @@ export const agodaJhonor = functions.https.onRequest(
   async (request, response) => {
     const data = request.body;
 
-    const uniqueId = "booking" + "-" + data.reservationCode;
+    const uniqueId = "agoda" + "-" + data.reservationCode;
     console.log("agoda new booking reservation");
     console.log(`reservation id: ${uniqueId}, jhonor`);
 
@@ -552,23 +722,6 @@ export const agodaJhonor = functions.https.onRequest(
 
 export const calculateEmpty = functions.https.onRequest(
   async (request, response) => {
-    // try {
-    //   const querySnapshot = await firebaseDb
-    //     .collection("reservations")
-    //     .where("stayingDates", "array-contains" "2019-09-01")
-    //     .get();
-    //   let num = 0;
-    //   querySnapshot.forEach(function(doc) {
-    //     if (
-    //       doc.data().checkInData < "2019-09-01" &&
-    //       doc.data().checkInData > "2019-10-01"
-    //     ) {
-    //       console.log(doc.id, " => ", doc.data().payoutPrice);
-    //       num = num + parseInt(doc.data().nights);
-    //     }
-    //   });
-    //   return response.status(200).send(`${num}`);
-
     const data = request.body;
     try {
       const querySnapshot = await firebaseDb
@@ -689,6 +842,196 @@ export const calFilledRoom = functions.https.onRequest(
         console.log("total", totalSum);
       });
       return response.status(200).send(`${totalSum}`);
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
+/*
+export const numOfTowels = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+    function sumObjectsByKey(...objs) {
+      return objs.reduce((a, b) => {
+        for (let k in b) {
+          if (b.hasOwnProperty(k))
+            a[k] = (a[k] || 0) + b[k];
+        }
+        return a;
+      }, {});
+    }
+    try {
+        const p = firebaseDb
+          .collection("reservations")
+          .where("checkOutDate", ">=", data.startDate)
+          .where("checkOutDate", "<=", data.endDate) 
+          .get();
+      const snap = await p
+      const total = {bunk: 0, single: 0, queen: 0}
+        snap.forEach(doc => {
+          let roomNum = doc.data().roomNumber
+         let a = {...total, ...jhonorData[roomNum].beds}
+
+        })
+      return response.status(200).send(`${totalSum}`);
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
+*/
+
+// new parseur parsing
+
+export const parseurAgoda = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+
+    const reservationCode = data.reservationCode.replace(/[^0-9]/g, "");
+    const uniqueId = "agoda" + "-" + reservationCode;
+    console.log(uniqueId);
+    console.log(data, data);
+
+    if (data.status === "취소") {
+      try {
+        await firebaseDb
+          .collection("reservations")
+          .doc(uniqueId)
+          .delete();
+
+        return response.status(200).send("parseur agoda delete ok");
+      } catch (error) {
+        console.log("error", error);
+        return response.status(500).send(error);
+      }
+    }
+
+    const checkInDate = DateTime.fromFormat(
+      data.checkInDate,
+      "d-MM-yyyy"
+    ).toISODate();
+    const checkOutDate = DateTime.fromFormat(
+      data.checkOutDate,
+      "d-MM-yyyy"
+    ).toISODate();
+    const stayingDates = getDaysArray(
+      new Date(checkInDate),
+      new Date(checkOutDate)
+    );
+
+    const guests = data.guests.replace(/[^0-9]/g, ""); // extract number
+    const roomTypeCode = data.roomNumber.replace(/[0-9]/g, "").trim(); // extract number
+    const phoneNumber = data.phoneNumber ? data.phoneNumber : "n/a";
+
+    try {
+      if (data.status === "Booking confirmation") {
+        await firebaseDb
+          .collection("reservations")
+          .doc(uniqueId)
+          .set({
+            platform: "agoda",
+            reservationCode: reservationCode,
+            checkInDate: checkInDate,
+            checkOutDate: checkOutDate,
+            checkInTime: 16,
+            checkOutTime: 10,
+            nights: stayingDates.length - 1,
+            guests: parseInt(guests),
+            guestName: `${data.firstName} ${data.lastName}`,
+            stayingDates: stayingDates,
+            roomNumber: agodaRoom(roomTypeCode),
+            phoneNumber: phoneNumber,
+            price: data.price,
+            payoutPrice: data.payoutPrice,
+            guestHouseName: agodaHotelType(data.hotel),
+            parser: "parseur",
+            paymentType: paymentType(data.paymentType),
+            numberOfRoom: data.numberOfRoom || "n/a"
+          });
+        return response.status(200).send("new parseur agoda ok");
+      }
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+
+    console.log("no action parseur agoda");
+    return response.status(200).send("ok");
+  }
+);
+
+export const parseurTemplateNeeded = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+    console.log("data: ", data);
+
+    try {
+      return req.post(
+        "https://hooks.slack.com/services/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",
+        { json: { text: "🤟new template needed" } }
+      );
+    } catch (error) {
+      console.log("error", error);
+      return response.status(500).send(error);
+    }
+  }
+);
+
+export const parseurBooking = functions.https.onRequest(
+  async (request, response) => {
+    const data = request.body;
+
+    const uniqueId = "booking" + "-" + data.reservationCode;
+    console.log("Jhonor new booking reservation");
+    console.log(`reservation id: ${uniqueId}, jhonor`);
+    console.log(data.status);
+    if (data.status === "Cancellation") {
+      try {
+        await firebaseDb
+          .collection("reservations")
+          .doc(uniqueId)
+          .delete();
+
+        return response.status(200).send("jhonor booking.com delete ok");
+      } catch (error) {
+        console.log("error", error);
+        return response.status(500).send(error);
+      }
+    }
+
+    try {
+      const checkInDate = bookingStyleDate(data.checkInDate);
+      const checkOutDate = bookingStyleDate(data.checkOutDate);
+      const stayingDates = getDaysArray(
+        new Date(checkInDate),
+        new Date(checkOutDate)
+      );
+      await firebaseDb
+        .collection("reservations")
+        .doc(uniqueId)
+        .set({
+          platform: "booking",
+          reservationCode: data.reservationCode,
+          checkInDate: checkInDate,
+          checkOutDate: checkOutDate,
+          checkInTime: 16,
+          checkOutTime: 10,
+          nights: parseInt(data.nights),
+          guests: parseInt(data.guests),
+          guestName: data.fullName,
+          stayingDates: stayingDates,
+          roomNumber: `jhonor${data.roomNumber}`,
+          phoneNumber: data.phoneNumber,
+          price: krwToString(data.price).toString(),
+          payoutPrice: (krwToString(data.price) * 0.85).toString(),
+          guestHouseName: "jhonor",
+          parser: "parseur",
+          paymentType: paymentType(data.paymentType),
+          numberOfRoom: data.numberOfRoom || "n/a"
+        });
+      return response.status(200).send("new booking ok");
     } catch (error) {
       console.log("error", error);
       return response.status(500).send(error);
