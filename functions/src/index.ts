@@ -206,6 +206,7 @@ const agodaRoom = (roomTypeCode: string) => {
     case "Family 1":
       return "jhonor302X";
     default:
+      console.log("roomtypecode", roomTypeCode);
       return "agoda room name error";
   }
 };
@@ -696,7 +697,7 @@ export const agodaJhonor = functions.https.onRequest(
         .collection("reservations")
         .doc(uniqueId)
         .set({
-          platform: "booking",
+          platform: "agoda",
           reservationCode: data.reservationCode,
           checkInDate: data.checkInDate,
           checkOutDate: data.checkOutDate,
@@ -922,6 +923,11 @@ export const parseurAgoda = functions.https.onRequest(
     );
 
     const guests = data.guests.replace(/[^0-9]/g, ""); // extract number
+    console.log("agoda parseur roomNumber", data.roomNumber);
+    console.log(
+      "agoda parseur roomNumber",
+      data.roomNumber.replace(/[0-9]/g, "").trim()
+    );
     const roomTypeCode = data.roomNumber.replace(/[0-9]/g, "").trim(); // extract number
     const phoneNumber = data.phoneNumber ? data.phoneNumber : "n/a";
 
