@@ -928,7 +928,13 @@ export const parseurAgoda = functions.https.onRequest(
       "agoda parseur roomNumber",
       data.roomNumber.replace(/[0-9]/g, "").trim()
     );
-    const roomTypeCode = data.roomNumber.replace(/[0-9]/g, "").trim(); // extract number
+
+    let roomTypeCode = "";
+    if (agodaHotelType(data.hotel) === "jhonor") {
+      roomTypeCode = data.roomNumber.trim();
+    } else {
+      roomTypeCode = data.roomNumber.replace(/[0-9]/g, "").trim(); // extract number
+    }
     const phoneNumber = data.phoneNumber ? data.phoneNumber : "n/a";
 
     try {
