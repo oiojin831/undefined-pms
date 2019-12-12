@@ -360,7 +360,6 @@ export const newAirbnb = functions.https.onRequest(
     const re = new RegExp("dmyk");
     const reSinsa = new RegExp("sinsa");
     //const reJhonor = new RegExp("jhonor");
-    console.log(`Airbnb listing id: ${data.listing.id}`);
     const isDmyk = re.test(airbnbRoom(data.listing.id));
     const isSinsa = reSinsa.test(airbnbRoom(data.listing.id));
     //const isJhonor = reJhonor.test(airbnbRoom(data.listing.id));
@@ -370,9 +369,11 @@ export const newAirbnb = functions.https.onRequest(
       new Date(data.end_date)
     );
     const uniqueId = "airbnb" + "-" + data.code;
-    console.log("airbnb status", data.status);
-    //pending just quit the function
-    // how to terminate ??
+
+    console.log(`Airbnb listing id: ${data.listing.id}`);
+    console.log(`Airbnb room name: ${airbnbRoom(data.listing.id)}`);
+    console.log("Airbnb status", data.status);
+    console.log("Airbnb reservationCode", data.code);
 
     if (data.status === "cancelled") {
       try {
