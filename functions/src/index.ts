@@ -374,6 +374,7 @@ export const newAirbnb = functions.https.onRequest(
     console.log(`Airbnb room name: ${airbnbRoom(data.listing.id)}`);
     console.log("Airbnb status", data.status);
     console.log("Airbnb reservationCode", data.code);
+    console.log("Airbnb data:", data);
 
     if (data.status === "cancelled") {
       try {
@@ -674,47 +675,6 @@ export const bookingJhonor = functions.https.onRequest(
           guestHouseName: "jhonor"
         });
       return response.status(200).send("new booking ok");
-    } catch (error) {
-      console.log("error", error);
-      return response.status(500).send(error);
-    }
-  }
-);
-
-export const agodaJhonor = functions.https.onRequest(
-  async (request, response) => {
-    const data = request.body;
-
-    const uniqueId = "agoda" + "-" + data.reservationCode;
-    console.log("agoda new booking reservation");
-    console.log(`reservation id: ${uniqueId}, jhonor`);
-
-    try {
-      const stayingDates = getDaysArray(
-        new Date(data.checkInDate),
-        new Date(data.checkOutDate)
-      );
-      await firebaseDb
-        .collection("reservations")
-        .doc(uniqueId)
-        .set({
-          platform: "agoda",
-          reservationCode: data.reservationCode,
-          checkInDate: data.checkInDate,
-          checkOutDate: data.checkOutDate,
-          checkInTime: 16,
-          checkOutTime: 10,
-          nights: parseInt(data.nights),
-          guests: parseInt(data.guests),
-          guestName: data.guestName,
-          stayingDates: stayingDates,
-          roomNumber: data.roomNumber,
-          phoneNumber: data.phoneNumber,
-          price: krwToString(data.totalPrice).toString(),
-          payoutPrice: krwToString(data.totalPrice).toString(),
-          guestHouseName: "jhonor"
-        });
-      return response.status(200).send("new agoda ok");
     } catch (error) {
       console.log("error", error);
       return response.status(500).send(error);
