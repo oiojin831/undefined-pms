@@ -938,7 +938,7 @@ export const parseurBooking = functions.https.onRequest(
       return response.status(200).send("modified booking  ok");
     } else {
       await firebaseDb
-        .collection("jreservations")
+        .collection("reservations")
         .doc(uniqueId)
         .set({
           platform: "booking",
