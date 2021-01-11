@@ -370,6 +370,7 @@ export const newAirbnb = functions.https.onRequest(
     );
     const uniqueId = "airbnb" + "-" + data.code;
 
+    console.log(`Airbnb unique id: ${uniqueId}`);
     console.log(`Airbnb listing id: ${data.listing.id}`);
     console.log(`Airbnb room name: ${airbnbRoom(data.listing.id)}`);
     console.log("Airbnb status", data.status);
@@ -917,7 +918,6 @@ export const parseurBooking = functions.https.onRequest(
       }
     }
 
-
     try {
       const checkInDate = bookingStyleDate(data.checkInDate);
       const checkOutDate = bookingStyleDate(data.checkOutDate);
@@ -926,43 +926,42 @@ export const parseurBooking = functions.https.onRequest(
         new Date(checkOutDate)
       );
 
-    if (data.status === "Modified Booking") {
-      // only works for price change
-      await firebaseDb
-        .collection("reservations")
-        .doc(uniqueId)
-        .update({
-          price: krwToString(data.price).toString(),
-          payoutPrice: (krwToString(data.price) * 0.85).toString(),
-        });
-      return response.status(200).send("modified booking  ok");
-    } else {
-      await firebaseDb
-        .collection("reservations")
-        .doc(uniqueId)
-        .set({
-          platform: "booking",
-          reservationCode: data.reservationCode,
-          checkInDate: checkInDate,
-          checkOutDate: checkOutDate,
-          checkInTime: 16,
-          checkOutTime: 10,
-          nights: parseInt(data.nights),
-          guests: parseInt(data.guests),
-          guestName: data.fullName,
-          stayingDates: stayingDates,
-          roomNumber: `jhonor${data.roomNumber}`,
-          phoneNumber: data.phoneNumber,
-          price: krwToString(data.price).toString(),
-          payoutPrice: (krwToString(data.price) * 0.85).toString(),
-          guestHouseName: "jhonor",
-          parser: "parseur",
-          paymentType: paymentType(data.paymentType),
-          numberOfRoom: data.numberOfRoom || "n/a"
-        });
-      return response.status(200).send("new booking ok");
-
-    }
+      if (data.status === "Modified Booking") {
+        // only works for price change
+        await firebaseDb
+          .collection("reservations")
+          .doc(uniqueId)
+          .update({
+            price: krwToString(data.price).toString(),
+            payoutPrice: (krwToString(data.price) * 0.85).toString()
+          });
+        return response.status(200).send("modified booking  ok");
+      } else {
+        await firebaseDb
+          .collection("reservations")
+          .doc(uniqueId)
+          .set({
+            platform: "booking",
+            reservationCode: data.reservationCode,
+            checkInDate: checkInDate,
+            checkOutDate: checkOutDate,
+            checkInTime: 16,
+            checkOutTime: 10,
+            nights: parseInt(data.nights),
+            guests: parseInt(data.guests),
+            guestName: data.fullName,
+            stayingDates: stayingDates,
+            roomNumber: `jhonor${data.roomNumber}`,
+            phoneNumber: data.phoneNumber,
+            price: krwToString(data.price).toString(),
+            payoutPrice: (krwToString(data.price) * 0.85).toString(),
+            guestHouseName: "jhonor",
+            parser: "parseur",
+            paymentType: paymentType(data.paymentType),
+            numberOfRoom: data.numberOfRoom || "n/a"
+          });
+        return response.status(200).send("new booking ok");
+      }
     } catch (error) {
       console.log("error", error);
       return response.status(500).send(error);
